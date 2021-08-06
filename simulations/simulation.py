@@ -50,7 +50,7 @@ class Arm:
 		pending_pulls.append(Pull(r, global_time+d, i))
 
 def reset():
-	global global_time
+	global global_time, pending_pulls
 	global_time=1
 	pending_pulls.clear()
 	for i in range(k):
@@ -75,7 +75,6 @@ def naiveUCB():
 		cumulative_rewards.append(r)
 		global_time+=1
 	pending_pulls.clear() # for the pulls that didn't return feedback within the horizon
-#	print(cumulative_rewards[0], " ", cumulative_rewards[-1])
 	return [cumulative_rewards, average_rewards]
 
 
@@ -110,9 +109,8 @@ def ourUCB(): # delta is the confidence level
 def optimal_strategy(): # based on the max cumulative reward at the end
 	global pending_pulls, global_time, arms # ensuring global references to these variables rather than local
 	best_cumulative_rewards=[]
-	for i in range(k):
-		arms[i].reset()
-	global_time=1
+	reset()
+	
 	for index in range (k):
 		cumulative_rewards=[]
 		r=0 # accumulated reward
@@ -126,12 +124,11 @@ def optimal_strategy(): # based on the max cumulative reward at the end
 			cumulative_rewards.append(r)
 			global_time+=1
 	
-		pending_pulls.clear() # for the pulls that didn't return feedback within the horizon
+		reset();
 
-		global_time=1
 		if(len(best_cumulative_rewards)==0 or cumulative_rewards[-1]>best_cumulative_rewards[-1]):
-			#print(cumulative_rewards[0], " ", cumulative_rewards[-1])
 			best_cumulative_rewards=cumulative_rewards.copy()
+
 	return best_cumulative_rewards
 
 
