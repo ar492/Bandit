@@ -7,7 +7,7 @@ import math
 
 k=10 # number of actions/arms
 arms=[]
-horizon=5000 # number of pulls
+horizon=2500 # number of pulls
 max_delay=10
 pending_pulls=[]
 global_time=1
@@ -139,36 +139,32 @@ def optimal_strategy(): # based on the max cumulative reward at the end
 	best_cumulative_rewards=[]
 	reset_everything()
 	
-	for index in range (k):
-		cumulative_rewards=[]
-		for i in range(horizon):
-			cumulative_rewards.append(0)
-		r=0 # accumulated reward
-		for itr in range(2):
-			for i in range(horizon):
-				arms[index].pull(index)
-				for j in range (len(pending_pulls)): # check if there are any pending pulls for which the reward just arrived
-					if pending_pulls[j].reach_time==global_time:
-						arms[pending_pulls[j].arm_index].update(j)
-						r+=pending_pulls[j].reward
-				pending_pulls=[x for x in pending_pulls if x.reach_time>global_time]
-				cumulative_rewards[i]+=r
-				global_time+=1
-				# axs[0].plot(cumulative_rewards)
-			reset_everything();
-		for i in range(horizon):
-			cumulative_rewards[i]/=2
-		if(len(best_cumulative_rewards)==0 or cumulative_rewards[-1]>best_cumulative_rewards[-1]):
-			best_cumulative_rewards=cumulative_rewards.copy()
+	index=0
+	best_mu=0
+	for i in range(k):
+		if(arms[i].mu>best_mu):
+			index=i
+			best_mu=arms[i].mu 
 
-	return best_cumulative_rewards
-
+	cumulative_rewards=[]
+	r=0 # accumulated reward
+	for i in range(horizon):
+		arms[index].pull(index)
+		for j in range (len(pending_pulls)): # check if there are any pending pulls for which the reward just arrived
+			if pending_pulls[j].reach_time==global_time:
+				arms[pending_pulls[j].arm_index].update(j)
+				r+=pending_pulls[j].reward
+		pending_pulls=[x for x in pending_pulls if x.reach_time>global_time]
+		cumulative_rewards.append(r)
+		global_time+=1
+	reset_everything();
+	return cumulative_rewards
 
 for i in range(k):
 	arms.append(Arm())
 
 
-batches=200
+batches=500
 
 # for naive UCB
 cr_avg_naive=[] # average of cumulative rewards at each timestep
@@ -264,5 +260,5 @@ axs[2].plot(regret_heu)
 axs[2].plot(regret_our)
 axs[2].set_ylabel('Regret')
 
-plt.savefig('simulation1.pdf')
+plt.savefig('simulation2.pdf')
 plt.show()
