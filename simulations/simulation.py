@@ -7,14 +7,14 @@ import math
 
 k=10 # number of actions (arms)
 arms=[]
-horizon=2500 # number of pulls
+horizon=1500 # number of pulls
 delay=20
 pending_pulls=[] # pulls for which feedback has not been recieved
 global_time=1
 fig, axs = plt.subplots()
 
 class Pull:
-	reward=0
+	reward=0.1
 	reach_time=0 # when does the reward reach the learner
 	arm_index=0
 	def __init__(self, r, t, i):
@@ -23,21 +23,23 @@ class Pull:
 		self.arm_index=i
 
 class Arm:
-	rewards=0
+	rewards=0.1
 	pulls=0
 	reward_pulls=0
 	def __init__(self): # normal distribution
+		self.mu=random.uniform(0, 1)
 		self.p=random.uniform(0, 1) # probability of 1. otherwise, 0
 	def reset(self):
-		self.rewards=0
+		self.rewards=0.1
 		self.pulls=0 # all pulls, regardless of feedback
 		self.reward_pulls=0 # number of pulls for which feedback has been received
 	def update(self, i):
 		self.rewards+=pending_pulls[i].reward
 		self.reward_pulls+=1
 	def pull_reward(self):
-		return (random.uniform(0, 1)<self.p)*10
+		return (random.uniform(0, 1)<self.p)
 	def pull_delay(self):
+		#return round(random.uniform(1, delay))
 		return delay
 	def pull(self, i):
 		r=self.pull_reward()
@@ -118,10 +120,15 @@ def ourUCB(): # delta is the confidence level
 	reset_between_algorithms()
 
 	for i in range(horizon):
-		sum_term=0
-		for x in range(int(max(0, global_time-m)), global_time-1): # for the sum term
-			sum_term+=math.sqrt(1/arms[which_arm[x-1]].pulls)
-		index = np.argmax([ np.inf if a.pulls==0 else (a.rewards/a.pulls + ((math.sqrt(math.log(global_time))) + sum_term) * math.sqrt(1/a.pulls)) for a in arms])
+		#sum_term=0
+		#for x in range(int(max(0, global_time-m)), global_time-1): # for the sum term
+		#	sum_term+=math.sqrt(1/arms[which_arm[x]].pulls)
+	#	for a in arms:
+	#		if a.pulls!=0:
+	#			print(a.rewards, a.pulls)
+	#			print(math.log(global_time)/(a.rewards/a.pulls))
+	#			print(math.sqrt(math.log(global_time)/(a.rewards/a.pulls)))
+		index = np.argmax([ np.inf if a.pulls==0 else (a.rewards/a.pulls + (math.sqrt(math.log(global_time)/(a.rewards/a.pulls))) + m/(a.rewards/a.pulls)) for a in arms])
 		arms[index].pull(index)
 		which_arm.append(index)
 		for j in range (len(pending_pulls)):
@@ -132,6 +139,7 @@ def ourUCB(): # delta is the confidence level
 		cumulative_rewards.append(r)
 		global_time+=1
 	pending_pulls.clear() # for the pulls that didn't return feedback within the horizon
+	#print(cumulative_rewards)
 	return cumulative_rewards
 
 
@@ -144,6 +152,9 @@ def optimal_strategy(): # based on the max cumulative reward at the end
 		if(arms[i].p>best_p):
 			index=i
 			best_p=arms[i].p
+		#if(arms[i].mu>best_p):
+		#	index=i
+		#	best_p=arms[i].mu
 	cumulative_rewards=[]
 	r=0 # accumulated reward
 	for i in range(horizon):
@@ -160,7 +171,7 @@ def optimal_strategy(): # based on the max cumulative reward at the end
 for i in range(k):
 	arms.append(Arm())
 
-batches=100
+batches=200
 
 regret_naive=[]
 regret_our=[]
@@ -191,6 +202,9 @@ for i in range (batches):
 	if (i%10==0):
 		print("at batch ", i)
 
+print(cr_our)
+print(best_cr)
+
 for i in range(horizon):
 	regret_naive[i]/=batches
 	regret_our[i]/=batches
@@ -203,7 +217,7 @@ axs.plot(regret_heu1, label="Heuristic UCB 1")
 axs.plot(regret_heu2, label="Heuristic UCB 2")
 axs.set_ylabel('Regret')
 axs.set_xlabel('Time')
-axs.legend()
+axs.legend(fontsize="large")
 
 plt.savefig('simulation.pdf')
 plt.show()
